@@ -140,7 +140,7 @@ jobs:
           set -e +v
           source .github/workflows/functions.sh
           VERSION=$(grep "version = " setup.cfg)
-          VERSION=${VERSION##*version =}
+          VERSION=${VERSION##*version = }
           info "Checking for up-to-date CHANGELOG.md"
           if ! grep "\[${VERSION}\]" CHANGELOG.md
           then
