@@ -141,6 +141,8 @@ jobs:
           source .github/workflows/functions.sh
           VERSION=$(grep "version=" setup.py)
           VERSION=${VERSION##*version=}
+          VERSION=${VERSION##"}
+          VERSION=${VERSION%%"}
           info "Checking for up-to-date CHANGELOG.md"
           if ! grep "\[${VERSION}\]" CHANGELOG.md
           then
@@ -163,7 +165,7 @@ jobs:
           python -m pip install --upgrade pip ${{ env.PIP_NOISE }}
           pip install -r requirements.txt ${{ env.PIP_NOISE }}
           pip install build virtualenv ${{ env.PIP_NOISE }}
-          info "Building the 'singles' package..."
+          info "Building the '${PACKAGE_NAME}' package..."
           python -m build
 
   # Run tests using different target Python versions
@@ -185,27 +187,27 @@ jobs:
           python -m pip install --upgrade pip ${{ env.PIP_NOISE }}
           pip install -r requirements.txt ${{ env.PIP_NOISE }}
           pip install pytest pytest-cov mock ${{ env.PIP_NOISE }}
-          python -m pytest --cov src.singles --cov-report term --cov-report html --cov-fail-under=100
+          python -m pytest --cov src.${PACKAGE_NAME} --cov-report term --cov-report html --cov-fail-under=100
 
-  # Test building documentation.
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: docs
-        run: |
-          set -e +v
-          source .github/workflows/functions.sh
-          python --version
-          python -m pip install --upgrade pip ${{ env.PIP_NOISE }}
-          pip install -r requirements.txt ${{ env.PIP_NOISE }}
-          pip install sphinx ${{ env.PIP_NOISE }}
-          info "Creating documentation using sphinx..."
-          cd docs
-          make html
+  # # Test building documentation.
+  # docs:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v2
+  #       with:
+  #         python-version: ${{ env.PYTHON_VERSION }}
+  #     - name: docs
+  #       run: |
+  #         set -e +v
+  #         source .github/workflows/functions.sh
+  #         python --version
+  #         python -m pip install --upgrade pip ${{ env.PIP_NOISE }}
+  #          pip install -r requirements.txt ${{ env.PIP_NOISE }}
+  #        pip install sphinx ${{ env.PIP_NOISE }}
+  #         info "Creating documentation using sphinx..."
+  #         cd docs
+  #         make html
 
   # ------------------------------------------------------------------------------------
   # The following jobs only run for tagged releases, i.e. package releases that we want

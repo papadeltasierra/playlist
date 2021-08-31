@@ -10,11 +10,10 @@ import random
 import eyed3
 import eyed3.mp3
 import time
-import warnings
 
 
 # Set up a specific logger with our desired output level
-logger = logging.getLogger("__main__")
+log = logging.getLogger("__main__")
 
 
 # Regular expressions.
@@ -48,9 +47,7 @@ GENRES = [
 
 
 def escapeXml(raw):
-    """
-    Escape an XML string otherwise some media clients crash!
-    """
+    """Escape an XML string otherwise some media clients crash!"""
 
     # Note that we deliberately convert ampersand first so that it is not
     # confused for anything else.
@@ -64,8 +61,7 @@ def escapeXml(raw):
 
 
 def filterMedia(filename):
-    """
-    """
+    """Fileter the media based on the provided criteria."""
     accept = False
 
     mp3Tags = eyed3.id3.Tag()
@@ -88,20 +84,17 @@ def filterMedia(filename):
 
 
 def buildMediaList():
-    """
-    """
+    """Build the list of available media."""
     mediaList = []
 
-    if args.verbose:
-        print('Walking media tree rooted at \'%s\'...' % args.media)
+    log.info('Walking media tree rooted at \'%s\'...' % args.media)
 
     for dirpath, dirnames, filenames in os.walk(args.media):
-        if args.verbose:
-            print('Directory: \'%s\'...' % dirpath)
+        log.info('Directory: \'%s\'...' % dirpath)
 
         for filename in filenames:
             # if eyed3.mp3.isMp3File(filename):
-            if eyeD3.mimetype.guessMimetype(filename) in eyed3.mp3.MIME_TYPES:
+            if eyed3.mimetype.guessMimetype(filename) in eyed3.mp3.MIME_TYPES:
                 mp3Filename = os.path.join(dirpath, filename)
                 relpath = os.path.relpath(dirpath, args.playlist)
                 relFilename = os.path.join(relpath, filename)
@@ -113,10 +106,8 @@ def buildMediaList():
 
 
 def selectMedia(mediaList):
-    """
-    """
-    if args.verbose:
-        print('Selecting tracks for your playlist...')
+    """Select which media we will include in the playlist."""
+    log.info('Selecting tracks for your playlist...')
 
     randomList = []
 
@@ -126,13 +117,11 @@ def selectMedia(mediaList):
     maxTracks = args.tracks
 
     if (mediaLen / 2) < maxTracks:
-        if args.verbose:
-            print('Limiting playlist to %d tracks...' % maxTracks)
+        log.info("Limiting playlist to %d tracks..." % maxTracks)
         maxTracks = (mediaLen / 2)
 
     if maxTracks > 0:
-        if args.verbose:
-            print('Your playlist will have %d tracks...' % maxTracks)
+        log.info("Your playlist will have %d tracks..." % maxTracks)
 
         tracksFound = 0
         totalDuration = 0
@@ -159,17 +148,14 @@ def selectMedia(mediaList):
                 # Time limit has been reached.
                 break
     else:
-        print('Too few tracks were found to allow creation of a playlist.')
+        log.error('Too few tracks were found to allow creation of a playlist.')
 
     return randomList
 
 
 def maybeDeleteOldPlaylist():
-    """
-    Delete old playlists.
-    """
-    if args.verbose:
-        print('Playlists in...: \'%s\'...' % args.playlist)
+    """Delete old playlists."""
+    log.info('Playlists in...: \'%s\'...' % args.playlist)
 
     # Windows Media Player doesn't seem to like complex filenames.
     PLAYLIST = re.compile(
@@ -196,17 +182,14 @@ def maybeDeleteOldPlaylist():
 
 
 def writePlaylist(mediaList, randomList):
-    """
-    """
-
+    """Write the playlist to the appropriate file."""
     # Playlist filename is a datestamp etc.
     fileTimestamp = time.strftime('%Y%m%d%H%M%S')
     nameTimestamp = time.strftime('%Y-%m-%d %H.%M.%S')
     filename = '%splaylist.%s' % (fileTimestamp, args.format)
     filename = os.path.join(args.playlist, filename)
 
-    if args.verbose:
-        print('Writing your playlist to \'%s\'...' % filename)
+    log.info('Writing your playlist to \'%s\'...' % filename)
 
     with open(filename, 'w') as playlist:
         if args.format == "wpl":
@@ -235,8 +218,7 @@ def writePlaylist(mediaList, randomList):
 
 
 def main():
-    """
-    """
+    """Mainline function."""
     mediaList = buildMediaList()
     randomList = selectMedia(mediaList)
     if len(randomList) > 0:
@@ -329,10 +311,9 @@ if __name__ == '__main__':
                         filemode="w",
                         format=FORMAT,
                         level=log_level)
-    logger = logging.getLogger('__main__')
 
     # now actually run the tests.
-    logger.info("Entry {")
+    log.info("Entry {")
     main()
-    logger.info("Exit {")
+    log.info("Exit {")
     logging.shutdown()
