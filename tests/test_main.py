@@ -1,5 +1,5 @@
 """Dummy initial test file."""
-import playlist
+from src import playlist                                        # noqa: F401
 
 
 def test_main():
