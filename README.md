@@ -36,36 +36,8 @@ optional arguments:
                         maximum number of playlists; oldest is deleted if
                         required
   -v, --verbose         verbose mode showing what we're doing
-        default="m3u", help="playlist format")
-    parser.add_argument(
-        "-b", "--before", type=int, default=None,
-        help="only tracks from before (year)")
-    parser.add_argument(
-        "-a", "--after", type=int, default=None,
-        help="only tracks from after (year)")
-    parser.add_argument(
-        "-d", "--duration", type=int, default=60,
-        help="total playing time duration (minutes)")
-    parser.add_argument(
-        "-g", "--genre", default=["Pop"], action='append',
-        help="music genre(s) for tracks")
-    parser.add_argument(
-        "-m", "--media", default=".",
-        help="root directory for media")
-    parser.add_argument(
-        "-p", "--playlist", default=".",
-        help="root directory for playlists")
-    parser.add_argument(
-        "-t", "--tracks", type=int, default=20,
-        help="numer of tracks for playlist")
-    parser.add_argument(
-        "-l", "--limit", type=int, default=10,
-        help="maximum number of playlists; oldest is deleted if required")
-    parser.add_argument(
-        "-v", "--verbose", action="store_const", const=True, default=False,
-        help="verbose mode showing what we're doing")
 ```
 
 [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
 
-   [eyeD3]: <http://eyed3.nicfit.net/>
+   [eyeD3]: <https://github.com/nicfit/eyeD3>
