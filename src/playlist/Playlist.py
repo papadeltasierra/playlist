@@ -13,6 +13,7 @@ import random
 import eyed3
 import eyed3.mp3
 import time
+import warnings
 
 
 # Set up a specific logger with our desired output level
@@ -53,7 +54,7 @@ def escapeXml(raw):
     Escape an XML string otherwise some media clients crash!
     """
 
-    # Note that we deliberately convert ampersand first so that it is not 
+    # Note that we deliberately convert ampersand first so that it is not
     # confused for anything else.
     mapping = [ ('&', '&amp;'), ('<', '&lt;'), ('>', '&gt;'), ('"', '&quot;'), ('\'', '&apos;') ]
     for k, v in mapping:
@@ -82,6 +83,7 @@ def filterMedia(filename):
                 if args.after is None or bestDate is None or bestDate > args.after:
                     # After date passes
                     accept = True
+
     return accept
 
 
@@ -98,7 +100,9 @@ def buildMediaList():
             print('Directory: \'%s\'...' % dirpath)
 
         for filename in filenames:
-            if eyed3.mp3.isMp3File(filename):
+            # if eyed3.mp3.isMp3File(filename):
+            if eyeD3.mimetype.guessMimetype(path)  in eyed3.mp3.MIME_TYPES:
+            if eyed3.isMp3File(filename):
                 mp3Filename = os.path.join(dirpath, filename)
                 relpath = os.path.relpath(dirpath, args.playlist)
                 relFilename = os.path.join(relpath, filename)
@@ -148,6 +152,7 @@ def selectMedia(mediaList):
             # how long does this make our playlist?
             filename = os.path.join(args.playlist, mediaList[randomTrack])
             mp3 = eyed3.load(filename)
+
             duration = mp3.info.time_secs
 
             totalDuration = totalDuration + duration
