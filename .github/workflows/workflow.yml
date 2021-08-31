@@ -87,7 +87,7 @@ jobs:
           pip install -r requirements.txt ${{ env.PIP_NOISE }}
           pip install mypy ${{ env.PIP_NOISE }}
           info "Running 'mypy' over the '${PACKAGE_NAME}' package..."
-          mypy "src/${PACKAGE_NAME}"" --ignore-missing-imports
+          mypy "src/${PACKAGE_NAME}" --ignore-missing-imports
 
   # Static analysis of this libraries code for security problems
   bandit:
@@ -141,8 +141,8 @@ jobs:
           source .github/workflows/functions.sh
           VERSION=$(grep "version=" setup.py)
           VERSION=${VERSION##*version=}
-          VERSION=${VERSION##"}
-          VERSION=${VERSION%%"}
+          VERSION="${VERSION##\"}"
+          VERSION="${VERSION%%\"}"
           info "Checking for up-to-date CHANGELOG.md"
           if ! grep "\[${VERSION}\]" CHANGELOG.md
           then

@@ -12,6 +12,7 @@ setup(
     author_email="paul_d_smith@hotmail.com",
 
     # Packages
+    package_dir="src",
     packages=["playlist"],
 
     # Include additional files into the package
