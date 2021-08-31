@@ -28,6 +28,6 @@ setup(
 
     # Dependent packages (distributions)
     install_requires=[
-        "eye3D",
+        "eyeD3",
     ],
 )
