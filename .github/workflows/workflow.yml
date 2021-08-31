@@ -141,8 +141,8 @@ jobs:
           source .github/workflows/functions.sh
           VERSION=$(grep "version=" setup.py)
           VERSION=${VERSION##*version=}
-          # VERSION="${VERSION##\"}"
-          # VERSION="${VERSION%%\"}"
+          VERSION=${VERSION##"}
+          VERSION=${VERSION%%"}
           info "Checking for up-to-date CHANGELOG.md"
           if ! grep "\[${VERSION}\]" CHANGELOG.md
           then
@@ -219,7 +219,8 @@ jobs:
     if: ${{ contains(github.ref, 'refs/tags/') }}
     # Only runs if all static analysis, build, test and docs jobs have passed.
     needs:
-      [ flake8, black, pydocstyle, mypy, bandit, safety, versions, build, test, docs ]
+      [ flake8, black, pydocstyle, mypy, bandit, safety, versions, build, test ]
+      # [ flake8, black, pydocstyle, mypy, bandit, safety, versions, build, test, docs ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
