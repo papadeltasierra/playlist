@@ -1,8 +1,5 @@
-"""
-Unit Test suite for BadXxml.
-
-Copyright (c) Metaswitch Networks 2017
-"""
+#!/usr/bin/python3
+"""Script to create an MP3 playlist for media players."""
 
 from __future__ import print_function
 import argparse
@@ -21,7 +18,7 @@ logger = logging.getLogger("__main__")
 
 
 # Regular expressions.
-MP3_FILENAME = re.compile('.*?\.mp3$')
+MP3_FILENAME = re.compile(r".*?\.mp3$")
 
 # MP3 IDv1 genres.
 GENRES = [
@@ -49,6 +46,7 @@ GENRES = [
   'Euro-House', 'Chanson', 'Dance Hall'
 ]
 
+
 def escapeXml(raw):
     """
     Escape an XML string otherwise some media clients crash!
@@ -56,7 +54,9 @@ def escapeXml(raw):
 
     # Note that we deliberately convert ampersand first so that it is not
     # confused for anything else.
-    mapping = [ ('&', '&amp;'), ('<', '&lt;'), ('>', '&gt;'), ('"', '&quot;'), ('\'', '&apos;') ]
+    mapping = [
+        ('&', '&amp;'), ('<', '&lt;'), ('>', '&gt;'), ('"', '&quot;'), ('\'', '&apos;')
+    ]
     for k, v in mapping:
         raw = raw.replace(k, v)
 
@@ -70,19 +70,19 @@ def filterMedia(filename):
 
     mp3Tags = eyed3.id3.Tag()
     mp3Tags.parse(filename)
-    #if mp3File:
-    #    mp3Tags = mp3File.id3.Tag
+    # if mp3File:
+    #     mp3Tags = mp3File.id3.Tag
 
     bestDate = mp3Tags.getBestDate()
     genre = mp3Tags.genre
 
     if args.genre is None or (genre is not None and genre.name in args.genre):
-            # Genre passes
-            if args.before is None or bestDate is None or bestDate < args.before:
-                # Before date passes
-                if args.after is None or bestDate is None or bestDate > args.after:
-                    # After date passes
-                    accept = True
+        # Genre passes
+        if args.before is None or bestDate is None or bestDate < args.before:
+            # Before date passes
+            if args.after is None or bestDate is None or bestDate > args.after:
+                # After date passes
+                accept = True
 
     return accept
 
@@ -101,8 +101,7 @@ def buildMediaList():
 
         for filename in filenames:
             # if eyed3.mp3.isMp3File(filename):
-            if eyeD3.mimetype.guessMimetype(path)  in eyed3.mp3.MIME_TYPES:
-            if eyed3.isMp3File(filename):
+            if eyeD3.mimetype.guessMimetype(filename) in eyed3.mp3.MIME_TYPES:
                 mp3Filename = os.path.join(dirpath, filename)
                 relpath = os.path.relpath(dirpath, args.playlist)
                 relFilename = os.path.join(relpath, filename)
@@ -141,8 +140,8 @@ def selectMedia(mediaList):
         random.seed()
         while tracksFound < maxTracks:
             randomTrack = random.randint(0, mediaLen)
-            #print(randomTrack)
-            #print(str(randomList))
+            # print(randomTrack)
+            # print(str(randomList))
             while randomTrack in randomList:
                 randomTrack = random.randint(0, mediaLen)
             randomList.append(randomTrack)

@@ -32,7 +32,7 @@ jobs:
           python -m pip install --upgrade pip ${{ env.PIP_NOISE }}
           pip install -r requirements.txt ${{ env.PIP_NOISE }}
           pip install flake8 ${{ env.PIP_NOISE }}
-          info "Running 'flake8' over the 'singles' package..."
+          info "Running 'flake8' over the '${PACKAGE_NAME}' package..."
           flake8 src tests --max-line-length ${{ env.LINE_LENGTH }}
 
   # pydocstyle checks for best-practise Python code documentation/commenting
@@ -50,7 +50,7 @@ jobs:
           python -m pip install --upgrade pip ${{ env.PIP_NOISE }}
           pip install -r requirements.txt ${{ env.PIP_NOISE }}
           pip install pydocstyle ${{ env.PIP_NOISE }}
-          info "Running 'pydocstyle' over the 'singles' package..."
+          info "Running 'pydocstyle' over the '${PACKAGE_NAME}'' package..."
           pydocstyle src tests
 
   # black checks for de-facto best-practice Pytho codgint layout style
@@ -68,7 +68,7 @@ jobs:
           python -m pip install --upgrade pip ${{ env.PIP_NOISE }}
           pip install -r requirements.txt ${{ env.PIP_NOISE }}
           pip install black ${{ env.PIP_NOISE }}
-          info "Running 'black' over the 'singles' package..."
+          info "Running 'black' over the '${PACKAGE_NAME}' package..."
           black --target-version ${{ env.BLACK_PY }} --check --diff --color --line-length  ${{ env.LINE_LENGTH }} src tests
 
   # mypy is used to check type annotations for validity
@@ -86,8 +86,8 @@ jobs:
           python -m pip install --upgrade pip ${{ env.PIP_NOISE }}
           pip install -r requirements.txt ${{ env.PIP_NOISE }}
           pip install mypy ${{ env.PIP_NOISE }}
-          info "Running 'mypy' over the 'singles' package..."
-          mypy src/singles --ignore-missing-imports
+          info "Running 'mypy' over the '${PACKAGE_NAME}' package..."
+          mypy "src/${PACKAGE_NAME}"" --ignore-missing-imports
 
   # Static analysis of this libraries code for security problems
   bandit:
@@ -139,8 +139,8 @@ jobs:
         run: |
           set -e +v
           source .github/workflows/functions.sh
-          VERSION=$(grep "version = " setup.cfg)
-          VERSION=${VERSION##*version = }
+          VERSION=$(grep "version=" setup.py)
+          VERSION=${VERSION##*version=}
           info "Checking for up-to-date CHANGELOG.md"
           if ! grep "\[${VERSION}\]" CHANGELOG.md
           then
