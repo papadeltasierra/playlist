@@ -1,6 +1,6 @@
 dist
 playlist.sublime-project
 playlist.sublime-workspace
-*.log
-*.pyc
-*.bat
+**/*.log
+**/*.pyc
+**/*.bat
