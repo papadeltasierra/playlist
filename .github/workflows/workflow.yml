@@ -185,7 +185,8 @@ jobs:
           python -m pip install --upgrade pip ${{ env.PIP_NOISE }}
           pip install -r requirements.txt ${{ env.PIP_NOISE }}
           pip install pytest pytest-cov mock ${{ env.PIP_NOISE }}
-          python -m pytest --cov src.${PACKAGE_NAME} --cov-report term --cov-report html --cov-fail-under=100
+          # python -m pytest --cov src.${PACKAGE_NAME} --cov-report term --cov-report html --cov-fail-under=100
+          python -m pytest --cov src.${PACKAGE_NAME} --cov-report term --cov-report html
 
   # # Test building documentation.
   # docs:
