@@ -7,10 +7,16 @@ import logging
 import os
 import re
 import random
+from eyed3.id3 import Tag
+from eyed3.mimetype import guessMimetype
+from eyed3.mp3 import MIME_TYPES
 import eyed3
-import eyed3.mp3
 import time
 
+# If verbose and/or debug are set this many times, this is the resulting log level.
+LOG_DEBUG = 2
+LOG_INFO = 1
+LOG_WARNING = 0
 
 # Set up a specific logger with our desired output level
 log = logging.getLogger("__main__")
@@ -171,7 +177,7 @@ def filterMedia(filename):
     """Fileter the media based on the provided criteria."""
     accept = False
 
-    mp3Tags = eyed3.id3.Tag()
+    mp3Tags = Tag()
     mp3Tags.parse(filename)
     # if mp3File:
     #     mp3Tags = mp3File.id3.Tag
@@ -197,16 +203,18 @@ def buildMediaList():
     log.info("Walking media tree rooted at '%s'..." % args.media)
 
     for dirpath, dirnames, filenames in os.walk(args.media):
-        log.info("Directory: '%s'..." % dirpath)
+        log.debug("Directory: '%s'..." % dirpath)
 
         for filename in filenames:
+            log.debug("filename: %s", filename)
+            full_filename = os.path.join(dirpath, filename)
             # if eyed3.mp3.isMp3File(filename):
-            if eyed3.mimetype.guessMimetype(filename) in eyed3.mp3.MIME_TYPES:
-                mp3Filename = os.path.join(dirpath, filename)
+            mp3_filename = os.path.join(dirpath, filename)
+            if guessMimetype(mp3_filename) in MIME_TYPES:
                 relpath = os.path.relpath(dirpath, args.playlist)
-                relFilename = os.path.join(relpath, filename)
-                if filterMedia(mp3Filename):
-                    mediaList.append(relFilename)
+                rel_filename = os.path.join(relpath, filename)
+                if filterMedia(mp3_filename):
+                    mediaList.append(rel_filename)
 
     # print(mediaList)
     return mediaList
@@ -317,7 +325,9 @@ def writePlaylist(mediaList, randomList):
         else:
             playlist.write("#EXTM3U\n\n")
             for ii in randomList:
-                playlist.write("EXTINF:240, Noddy and The rebels - Shout\n")
+                mp3_filename = os.path.join(args.playlist, mediaList[ii])
+                mp3 = eyed3.load(mp3_filename)
+                playlist.write("EXTINF:%d, %s - %s\n" % (mp3.info.time_secs, mp3.tag.artist, mp3.tag.title))
                 playlist.write(escapeXml(mediaList[ii]))
                 playlist.write("\n\n")
 
@@ -339,14 +349,6 @@ def argparser():
     :rtype: Parser
     """
     parser = argparse.ArgumentParser(description="Create randomized playlists")
-    parser.add_argument(
-        "-?",
-        "--query",
-        action="store_const",
-        const=True,
-        default=False,
-        help="show this help message and exit",
-    )
     parser.add_argument(
         "-f", "--format", choices=["m3u", "wpl"], default="m3u", help="playlist format"
     )
@@ -385,11 +387,17 @@ def argparser():
         help="maximum number of playlists; oldest is deleted if required",
     )
     parser.add_argument(
+        "-x",
+        "--debug",
+        action="count",
+        default=0,
+        help="debug setting for trace file",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
-        action="store_const",
-        const=True,
-        default=False,
+        action="count",
+        default=0,
         help="verbose mode showing what we're doing",
     )
 
@@ -413,21 +421,14 @@ if __name__ == "__main__":
     if args.after is not None:
         args.after = eyed3.core.Date(args.after)
 
-    if args.query:
-        parser.print_help()
-        exit()
+    # Set log level.
+    if args.verbose >= LOG_DEBUG:
+        log_level = logging.DEBUG
+    elif args.verbose >= LOG_INFO:
+        log_level = logging.INFO
+    else:
+        log_level = logging.WARNING
 
-    log_level = logging.DEBUG
-    # log_level = logging.INFO
-    # log_level = logging.WARNING
-    # log_level = logging.ERROR
-    # log_level = logging.CRITICAL
-
-    if args.verbose:
-        verbosity_level = 2
-
-    # Create a logger that produces output in the same format as expected
-    # by VSlick.
     FORMAT = "%(asctime)-15s %(filename)s:%(lineno)d %(funcName)s %(message)s"
     logging.basicConfig(
         filename="Playlist.log", filemode="w", format=FORMAT, level=log_level
