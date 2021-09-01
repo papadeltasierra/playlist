@@ -1,5 +1,6 @@
 dist
-playlist/playlist.bat
-playlist/tryplay.bat
 playlist.sublime-project
 playlist.sublime-workspace
+*.log
+*.pyc
+*.bat
