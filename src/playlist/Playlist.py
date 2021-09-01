@@ -207,8 +207,6 @@ def buildMediaList():
 
         for filename in filenames:
             log.debug("filename: %s", filename)
-            full_filename = os.path.join(dirpath, filename)
-            # if eyed3.mp3.isMp3File(filename):
             mp3_filename = os.path.join(dirpath, filename)
             if guessMimetype(mp3_filename) in MIME_TYPES:
                 relpath = os.path.relpath(dirpath, args.playlist)
@@ -216,7 +214,7 @@ def buildMediaList():
                 if filterMedia(mp3_filename):
                     mediaList.append(rel_filename)
 
-    # print(mediaList)
+    log.debug(mediaList)
     return mediaList
 
 
@@ -226,8 +224,8 @@ def selectMedia(mediaList):
 
     randomList = []
 
-    # print(mediaList)
-    # print(len(mediaList))
+    log.debug(mediaList)
+    log.debug(len(mediaList))
     mediaLen = len(mediaList) - 1
     maxTracks = args.tracks
 
@@ -244,8 +242,6 @@ def selectMedia(mediaList):
         random.seed()
         while tracksFound < maxTracks:
             randomTrack = random.randint(0, mediaLen)
-            # print(randomTrack)
-            # print(str(randomList))
             while randomTrack in randomList:
                 randomTrack = random.randint(0, mediaLen)
             randomList.append(randomTrack)
@@ -282,25 +278,30 @@ def maybeDeleteOldPlaylist():
         if m:
             playlists.append(filename)
 
-    to_delete = (len(playlists) + 1) - args.limit
-    if to_delete > 0:
-        # Need to delete some playlists.
-        log.info("Delete %d playlists..." % to_delete)
-        playlists.sort()
+    if args.limit:
+        log.info("Deleting old playlists...")
+        to_delete = (len(playlists) + 1) - args.limit
+        if to_delete > 0:
+            # Need to delete some playlists.
+            log.info("Delete %d playlists..." % to_delete)
+            playlists.sort()
 
-        for td in range(0, to_delete):
-            fullname = os.path.join(args.playlist, playlists[td])
-            log.info("Deleting old playlist: %s" % fullname)
-            os.remove(fullname)
+            for td in range(0, to_delete):
+                fullname = os.path.join(args.playlist, playlists[td])
+                log.info("Deleting old playlist: %s" % fullname)
+                os.remove(fullname)
 
 
 def writePlaylist(mediaList, randomList):
     """Write the playlist to the appropriate file."""
     # Playlist filename is a datestamp etc.
-    fileTimestamp = time.strftime("%Y%m%d%H%M%S")
-    nameTimestamp = time.strftime("%Y-%m-%d %H.%M.%S")
-    filename = "%splaylist.%s" % (fileTimestamp, args.format)
-    filename = os.path.join(args.playlist, filename)
+    if args.output:
+        filename = os.path.join(args.playlist, args.output)
+    else:
+        fileTimestamp = time.strftime("%Y%m%d%H%M%S")
+        nameTimestamp = time.strftime("%Y-%m-%d %H.%M.%S")
+        filename = "%splaylist.%s" % (fileTimestamp, args.format)
+        filename = os.path.join(args.playlist, filename)
 
     log.info("Writing your playlist to '%s'..." % filename)
 
@@ -327,7 +328,10 @@ def writePlaylist(mediaList, randomList):
             for ii in randomList:
                 mp3_filename = os.path.join(args.playlist, mediaList[ii])
                 mp3 = eyed3.load(mp3_filename)
-                playlist.write("EXTINF:%d, %s - %s\n" % (mp3.info.time_secs, mp3.tag.artist, mp3.tag.title))
+                playlist.write(
+                    "EXTINF:%d, %s - %s\n"
+                    % (mp3.info.time_secs, mp3.tag.artist, mp3.tag.title)
+                )
                 playlist.write(escapeXml(mediaList[ii]))
                 playlist.write("\n\n")
 
@@ -352,6 +356,7 @@ def argparser():
     parser.add_argument(
         "-f", "--format", choices=["m3u", "wpl"], default="m3u", help="playlist format"
     )
+    parser.add_argument("-o", "--output", default=None, help="playlist filename")
     parser.add_argument(
         "-b", "--before", type=int, default=None, help="only tracks from before (year)"
     )
@@ -377,13 +382,13 @@ def argparser():
         "-p", "--playlist", default=".", help="root directory for playlists"
     )
     parser.add_argument(
-        "-t", "--tracks", type=int, default=20, help="numer of tracks for playlist"
+        "-t", "--tracks", type=int, default=20, help="number of tracks for playlist"
     )
     parser.add_argument(
         "-l",
         "--limit",
         type=int,
-        default=10,
+        default=0,
         help="maximum number of playlists; oldest is deleted if required",
     )
     parser.add_argument(
