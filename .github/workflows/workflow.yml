@@ -228,6 +228,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: tag check
         run: |
+          source .github/workflows/functions.sh
           info "GitHub CI ref slug is ${GITHUB_REF}"
           NORMALISED_TAG=$(echo ${GITHUB_REF} | tr '-' '.')
           info "Normalised GitHub ref slug is ${NORMALISED_TAG}"
