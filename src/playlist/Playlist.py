@@ -325,7 +325,7 @@ def writePlaylist(mediaList, randomList):
             playlist.write("</smil>\n")
         else:
             playlist.write("#EXTM3U\n\n")
-            playlist.write("#PLAYLIST:%s\n" & nameTimestamp)
+            playlist.write("#PLAYLIST:%s\n" % nameTimestamp)
             for ii in randomList:
                 mp3_filename = os.path.join(args.playlist, mediaList[ii])
                 mp3 = eyed3.load(mp3_filename)
