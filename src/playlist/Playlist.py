@@ -204,12 +204,14 @@ def buildMediaList():
 
     for dirpath, dirnames, filenames in os.walk(args.media):
         log.debug("Directory: '%s'..." % dirpath)
+        log.debug("Dirnames:  '%s'..." % dirnames)
+        log.debug("Filenames: '%s'..." % filenames)
 
         for filename in filenames:
             log.debug("filename: %s", filename)
             mp3_filename = os.path.join(dirpath, filename)
             if guessMimetype(mp3_filename) in MIME_TYPES:
-                relpath = os.path.relpath(dirpath, args.playlist)
+                relpath = os.path.relpath(dirpath, args.media)
                 rel_filename = os.path.join(relpath, filename)
                 if filterMedia(mp3_filename):
                     mediaList.append(rel_filename)
@@ -249,7 +251,7 @@ def selectMedia(mediaList):
 
             # Now that we have decided to add the track, how long is it and
             # how long does this make our playlist?
-            filename = os.path.join(args.playlist, mediaList[randomTrack])
+            filename = os.path.join(args.media, mediaList[randomTrack])
             mp3 = eyed3.load(filename)
 
             duration = mp3.info.time_secs
@@ -257,10 +259,12 @@ def selectMedia(mediaList):
             totalDuration = totalDuration + duration
             if totalDuration >= args.duration:
                 # Time limit has been reached.
+                log.info("Time limit reached")
                 break
     else:
         log.error("Too few tracks were found to allow creation of a playlist.")
 
+    log.info("Playlist contains %d tracks" % len(randomList))
     return randomList
 
 
@@ -327,7 +331,7 @@ def writePlaylist(mediaList, randomList):
             playlist.write("#EXTM3U\n\n")
             playlist.write("#PLAYLIST:%s\n" % nameTimestamp)
             for ii in randomList:
-                mp3_filename = os.path.join(args.playlist, mediaList[ii])
+                mp3_filename = os.path.join(args.media, mediaList[ii])
                 mp3 = eyed3.load(mp3_filename)
                 playlist.write(
                     "EXTINF:%d, %s - %s\n"
