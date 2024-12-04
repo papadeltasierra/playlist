@@ -1,6 +1,15 @@
+[tool.poetry]
+name = "playlist"
+version = "0.1.0"
+description = ""
+authors = ["Paul D.Smith <paul@pauldsmith.org.uk>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+eyed3 = "^0.9.7"
+
+
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

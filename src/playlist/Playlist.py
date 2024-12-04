@@ -268,6 +268,42 @@ def selectMedia(mediaList):
     return randomList
 
 
+def list_playlists(directory, pattern):
+    playlists = []
+    for filename in os.listdir(directory):
+        m = pattern.match(filename)
+        if m:
+            playlists.append(filename)
+    return playlists
+
+def delete_old_playlists(directory, playlists, limit):
+    if limit:
+        log.info("Deleting old playlists...")
+        to_delete = (len(playlists) + 1) - limit
+        if to_delete > 0:
+            log.info("Delete %d playlists..." % to_delete)
+            playlists.sort()
+            for td in range(0, to_delete):
+                fullname = os.path.join(directory, playlists[td])
+                log.info("Deleting old playlist: %s" % fullname)
+                os.remove(fullname)
+
+def generate_playlist_filename(directory, output, format):
+    if output:
+        return os.path.join(directory, output)
+    else:
+        fileTimestamp = time.strftime("%Y%m%d%H%M%S")
+        filename = "%splaylist.%s" % (fileTimestamp, format)
+        return os.path.join(directory, filename)
+
+def write_playlist(filename, format, mediaList, randomList):
+    log.info("Writing your playlist to '%s'..." % filename)
+    with open(filename, "w") as playlist:
+        if format == "wpl":
+            playlist.write('<?wpl version="1.0"?>\n')
+        # Add more format handling as needed
+
+
 def maybeDeleteOldPlaylist():
     """Delete old playlists."""
     log.info("Playlists in...: '%s'..." % args.playlist)
@@ -275,70 +311,14 @@ def maybeDeleteOldPlaylist():
     # Windows Media Player doesn't seem to like complex filenames.
     PLAYLIST = re.compile(r"(?P<date>\d{8})" r"(?P<time>\d{6})playlist.(?P<ext>\w+)")
 
-    playlists = []
-
-    for filename in os.listdir(args.playlist):
-        m = PLAYLIST.match(filename)
-        if m:
-            playlists.append(filename)
-
-    if args.limit:
-        log.info("Deleting old playlists...")
-        to_delete = (len(playlists) + 1) - args.limit
-        if to_delete > 0:
-            # Need to delete some playlists.
-            log.info("Delete %d playlists..." % to_delete)
-            playlists.sort()
-
-            for td in range(0, to_delete):
-                fullname = os.path.join(args.playlist, playlists[td])
-                log.info("Deleting old playlist: %s" % fullname)
-                os.remove(fullname)
+    playlists = list_playlists(args.playlist, PLAYLIST)
+    delete_old_playlists(args.playlist, playlists, args.limit)
 
 
 def writePlaylist(mediaList, randomList):
     """Write the playlist to the appropriate file."""
-    # Playlist filename is a datestamp etc.
-    if args.output:
-        filename = os.path.join(args.playlist, args.output)
-    else:
-        fileTimestamp = time.strftime("%Y%m%d%H%M%S")
-        nameTimestamp = time.strftime("%Y-%m-%d %H.%M.%S")
-        filename = "%splaylist.%s" % (fileTimestamp, args.format)
-        filename = os.path.join(args.playlist, filename)
-
-    log.info("Writing your playlist to '%s'..." % filename)
-
-    with open(filename, "w") as playlist:
-        if args.format == "wpl":
-            playlist.write('<?wpl version="1.0"?>\n')
-            playlist.write("<smil>\n")
-            playlist.write("    <head>\n")
-            playlist.write("        <title>%s</title>\n" % nameTimestamp)
-            playlist.write("    </head>\n")
-            playlist.write("    <body>\n")
-            playlist.write("        <seq>\n")
-
-            for ii in randomList:
-                playlist.write('            <media src="')
-                playlist.write(escapeXml(mediaList[ii]))
-                playlist.write('" />\n')
-
-            playlist.write("        </seq>\n")
-            playlist.write("    </body>\n")
-            playlist.write("</smil>\n")
-        else:
-            playlist.write("#EXTM3U\n\n")
-            playlist.write("#PLAYLIST:%s\n" % nameTimestamp)
-            for ii in randomList:
-                mp3_filename = os.path.join(args.media, mediaList[ii])
-                mp3 = eyed3.load(mp3_filename)
-                playlist.write(
-                    "EXTINF:%d, %s - %s\n"
-                    % (mp3.info.time_secs, mp3.tag.artist, mp3.tag.title)
-                )
-                playlist.write(escapeXml(mediaList[ii]))
-                playlist.write("\n\n")
+    filename = generate_playlist_filename(args.playlist, args.output, args.format)
+    write_playlist(filename, args.format, mediaList, randomList)
 
 
 def main():
