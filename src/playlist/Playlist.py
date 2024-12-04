@@ -279,7 +279,7 @@ def list_playlists(directory, pattern):
 def delete_old_playlists(directory, playlists, limit):
     if limit:
         log.info("Deleting old playlists...")
-        to_delete = (len(playlists) + 1) - limit
+        to_delete = len(playlists) - limit
         if to_delete > 0:
             log.info("Delete %d playlists..." % to_delete)
             playlists.sort()
