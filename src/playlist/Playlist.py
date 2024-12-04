@@ -349,13 +349,6 @@ def argparser():
         "-a", "--after", type=int, default=None, help="only tracks from after (year)"
     )
     parser.add_argument(
-        "-d",
-        "--duration",
-        type=int,
-        default=60,
-        help="total playing time duration (minutes)",
-    )
-    parser.add_argument(
         "-g",
         "--genre",
         default=["Pop"],
@@ -369,6 +362,23 @@ def argparser():
     parser.add_argument(
         "-t", "--tracks", type=int, default=20, help="number of tracks for playlist"
     )
+    # Create mutually exclusive group for tracks and duration
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "-t",
+        "--tracks",
+        type=int,
+        default=20,
+        help="number of tracks for playlist"
+    )
+    group.add_argument(
+        "-d",
+        "--duration",
+        type=int,
+        default=60,
+        help="total playing time duration (minutes)"
+    )
+
     parser.add_argument(
         "-l",
         "--limit",
