@@ -4,7 +4,7 @@ from unittest.mock import patch, mock_open
 import os
 import re
 import time
-from src.playlist import list_playlists, delete_old_playlists, generate_playlist_filename, write_playlist
+from src.playlist.playlist import list_playlists, delete_old_playlists, generate_playlist_filename, write_playlist
 
 
 @patch('os.listdir')
