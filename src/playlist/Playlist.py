@@ -14,6 +14,7 @@ import eyed3
 import time
 import sys
 import base64
+from typing import TextIO, Any, List
 
 # If verbose and/or debug are set this many times, this is the resulting log level.
 LOG_DEBUG = 2
@@ -25,7 +26,7 @@ log = logging.getLogger("__main__")
 
 
 # Regular expressions.
-MP3_FILENAME = re.compile(r".*?\.mp3$")
+mp3_track = re.compile(r".*?\.mp3_data$")
 
 # MP3 IDv1 genres.
 GENRES = [
@@ -211,15 +212,15 @@ def buildMediaList():
 
         for filename in filenames:
             log.debug("filename: %s", filename)
-            mp3_filename = os.path.join(dirpath, filename)
-            if guessMimetype(mp3_filename) in MIME_TYPES:
+            mp3_track = os.path.join(dirpath, filename)
+            if guessMimetype(mp3_track) in MIME_TYPES:
                 relpath = os.path.relpath(dirpath, args.media)
                 rel_filename = os.path.join(relpath, filename)
-                if filterMedia(mp3_filename):
+                if filterMedia(mp3_track):
                     mediaList.append(rel_filename)
                     # print(dirpath)
                     # print(relpath)
-                    # print(mp3_filename)
+                    # print(mp3_track)
                     # sys.exit(9)
 
     log.debug(mediaList)
@@ -255,9 +256,9 @@ def selectMedia(mediaList):
         # Now that we have decided to add the track, how long is it and
         # how long does this make our playlist?
         filename = os.path.join(args.media, mediaList[randomTrack])
-        mp3 = eyed3.load(filename)
+        mp3_data = eyed3.load(filename)
 
-        duration = mp3.info.time_secs
+        duration = mp3_data.info.time_secs
         totalDuration = totalDuration + duration
 
         if maxTracks and tracksFound >= maxTracks:
@@ -282,6 +283,7 @@ def list_playlists(directory, pattern):
             playlists.append(filename)
     return playlists
 
+
 def delete_old_playlists(directory, playlists, limit):
     if limit:
         log.info("Deleting old playlists...")
@@ -294,78 +296,125 @@ def delete_old_playlists(directory, playlists, limit):
                 log.info("Deleting old playlist: %s" % fullname)
                 os.remove(fullname)
 
-def generate_playlist_filename(directory, output, format):
-    if output:
-        # Base64 encode the output.
-        if args.base64:
-            output = base64.b64encode(output.encode("utf-8")).decode("utf-8")
-            output = "%s.%s" % (output, args.format)
-        return os.path.join(directory, output)
+
+def generate_playlist_filename(args):
+    filename: str
+    playlist_name: str
+    if args.output:
+        playlist_name = args.output
     else:
-        fileTimestamp = time.strftime("%Y%m%d%H%M%S")
-        filename = "%splaylist" % fileTimestamp
-        if args.base64:
-            filename = base64.b64encode(filename.encode("utf-8")).decode("utf-8")
-        filename = "%s.%s" % (filename, format)
-        return os.path.join(directory, filename)
+        fileTimestamp: str = time.strftime("%Y%m%d%H%M%S")
+        playlist_name = "%splaylist" % fileTimestamp
 
-def write_playlist(filename, format, mediaList, randomList, separator):
+    # Base64 encode the output.
+    if args.base64:
+        playlist_name = base64.b64encode(playlist_name.encode("utf-8")).decode("utf-8")
+
+    filename = os.path.join(args.playlist, playlist_name + "." + args.format)
+    return playlist_name, filename
+
+
+class Playlist:
+    def __init__(self, playlist_name: str, filename: str) -> None:
+        self.playlist_name: str = playlist_name
+        self.filename: str = filename
+        self.format: str = ""
+        self.ext: str = ""
+        self.playlist: TextIO = None
+
+    def Open(self) -> None:
+        self.playlist = open(self.filename, "w")
+
+    def Close(self) -> None:
+        self.playlist.close()
+
+    def WriteHeader(self) -> None:
+        raise NotImplementedError
+
+    def WriteFooter(self) -> None:
+        raise NotImplementedError
+
+    def WriteTrack(self, mp3_track: str, mp3_data: Any) -> None:
+        mp3_track = mp3_track
+        mp3_data = mp3_data
+        raise NotImplementedError
+
+
+class M3UPlaylist(Playlist):
+    def __init__(self, playlist_name: str, filename: str) -> None:
+        super().__init__(playlist_name, filename)
+        self.format: str = "EXTM3U"
+
+    def WriteHeader(self):
+        self.playlist.write("#EXT%s\n" % self.format.upper())
+        self.playlist.write("#PLAYLIST:%s\n" % self.playlist_name)
+
+    def WriteFooter(self):
+        pass
+
+    def WriteTrack(self, mp3_track: str, mp3_data: Any):
+        self.playlist.write(
+            "EXTINF:%d, %s - %s\n"
+            % (mp3_data.info.time_secs, mp3_data.tag.artist, mp3_data.tag.title)
+        )
+        self.playlist.write(escapeXml(mp3_track))
+        self.playlist.write("\n")
+
+
+class M3UPPlaylist(M3UPlaylist):
+    def __init__(self, playlist_name: str, filename: str) -> None:
+        super().__init__(playlist_name, filename)
+        self.format: str = "EXTM3U8"
+
+
+class WPLPlaylist(Playlist):
+    def WriteHeader(self) -> None:
+        self.playlist.write('<?wpl version="1.0"?>\n')
+        self.playlist.write("<smil>\n")
+        self.playlist.write("    <head>\n")
+        self.playlist.write("        <title>%s</title>\n" % self.playlist_name)
+        self.playlist.write("    </head>\n")
+        self.playlist.write("    <body>\n")
+        self.playlist.write("        <seq>\n")
+
+    def WriteFooter(self):
+        self.playlist.write("        </seq>\n")
+        self.playlist.write("    </body>\n")
+        self.playlist.write("</smil>\n")
+
+    def WriteTrack(self, mp3_track: str, _: Any):
+        self.playlist.write('            <media src="')
+        self.playlist.write(escapeXml(mp3_track))
+        self.playlist.write('" />\n')
+
+
+def write_playlist(
+    args, playlist_name, filename, mediaList: List[str], randomList: List[int]
+):
     log.info("Writing your playlist to '%s'..." % filename)
-    nameTimestamp = time.strftime("%Y-%m-%d %H.%M.%S")
+    root: str = args.root
     if not args.root:
-        setattr(args, "root", args.media)
-    with open(filename, "w") as playlist:
-       if format == "wpl":
-           playlist.write('<?wpl version="1.0"?>\n')
-           playlist.write("<smil>\n")
-           playlist.write("    <head>\n")
-           playlist.write("        <title>%s</title>\n" % nameTimestamp)
-           playlist.write("    </head>\n")
-           playlist.write("    <body>\n")
-           playlist.write("        <seq>\n")
-           for ii in randomList:
-               mp3_filename = os.path.join(args.root, mediaList[ii])
-               if args.separator != os.sep:
-                   mp3_filename = mp3_filename.replace(os.sep, args.separator)
-               playlist.write('            <media src="')
-               playlist.write(escapeXml(mp3_filename))
-               playlist.write('" />\n')
-           playlist.write("        </seq>\n")
-           playlist.write("    </body>\n")
-           playlist.write("</smil>\n")
-       else:
-           if args.format == "m3u":
-                    playlist.write("#EXTM3U\n\n")
-                    playlist.write("#PLAYLIST:%s\n" % nameTimestamp)
-           else:
-                    playlist.write("#EXTM3UP\n")
-           for ii in randomList:
-               mp3_filename = os.path.join(args.media, mediaList[ii])
-               # print(args.media)
-               # print(mediaList[ii])
-               # print(mp3_filename)
-               # sys.exit(8)
-               mp3 = eyed3.load(mp3_filename)
-               # Note we might want to write a different root to the playlist
-               mp3_filename = os.path.join(args.root, mediaList[ii])
-               # print(os.sep)
-               # print(args.separator)
-               # sys.exit(7)
-               #print(mp3_filename)
-               if separator != os.sep:
-                   mp3_filename = mp3_filename.replace(os.sep, separator)
-               #print(mp3_filename
-               playlist.write(
-                   "EXTINF:%d, %s - %s\n"
-                   % (mp3.info.time_secs, mp3.tag.artist, mp3.tag.title)
-               )
-               playlist.write(escapeXml(mp3_filename))
-               #print(mp3_filename)
-               playlist.write("\n")
-               if args.format == "m3u":
-                    playlist.write("\n")
+        root = args.media
 
-def maybeDeleteOldPlaylist():
+    playlistMap = {"m3u": M3UPlaylist, "m3up": M3UPPlaylist, "wpl": WPLPlaylist}
+
+    playlist: Playlist = playlistMap[args.format](playlist_name, filename)
+
+    playlist.Open()
+    playlist.WriteHeader()
+    ii: int
+    for ii in randomList:
+        mp3_track: str = os.path.join(root, mediaList[ii])
+        mp3_filename: str = os.path.join(args.media, mediaList[ii])
+        if args.separator != os.sep:
+            mp3_track = mp3_track.replace(os.sep, args.separator)
+        mp3_data: Any = eyed3.load(mp3_filename)
+        playlist.WriteTrack(mp3_track, mp3_data)
+    playlist.WriteFooter()
+    playlist.Close()
+
+
+def maybeDeleteOldPlaylist(args):
     """Delete old playlists."""
     log.info("Playlists in...: '%s'..." % args.playlist)
 
@@ -376,10 +425,10 @@ def maybeDeleteOldPlaylist():
     delete_old_playlists(args.playlist, playlists, args.limit)
 
 
-def writePlaylist(mediaList, randomList):
+def writePlaylist(args, mediaList, randomList):
     """Write the playlist to the appropriate file."""
-    filename = generate_playlist_filename(args.playlist, args.output, args.format)
-    write_playlist(filename, args.format, mediaList, randomList, args.separator)
+    playlist_name, filename = generate_playlist_filename(args)
+    write_playlist(args, playlist_name, filename, mediaList, randomList)
 
 
 def main():
@@ -387,11 +436,11 @@ def main():
     mediaList = buildMediaList()
     randomList = selectMedia(mediaList)
     if len(randomList) > 0:
-        maybeDeleteOldPlaylist()
-        writePlaylist(mediaList, randomList)
+        maybeDeleteOldPlaylist(args)
+        writePlaylist(args, mediaList, randomList)
 
 
-def argparser():
+def parse_args(argv: list[str]) -> argparse.Namespace:
     """
     Build an arguments parser.
 
@@ -400,7 +449,11 @@ def argparser():
     """
     parser = argparse.ArgumentParser(description="Create randomized playlists")
     parser.add_argument(
-        "-f", "--format", choices=["m3u", "wpl", "m3up"], default="m3u", help="playlist format"
+        "-f",
+        "--format",
+        choices=["m3u", "wpl", "m3up"],
+        default="m3u",
+        help="playlist format",
     )
     parser.add_argument("-o", "--output", default=None, help="playlist filename")
     parser.add_argument(
@@ -416,26 +469,24 @@ def argparser():
         action="append",
         help="music genre(s) for tracks",
     )
-    parser.add_argument("-m", "--media", default=".", help="root directory from which to source media")
+    parser.add_argument(
+        "-m", "--media", default=".", help="root directory from which to source media"
+    )
     parser.add_argument("-r", "--root", help="root to show in media filenames")
     parser.add_argument(
         "-p", "--playlist", default=".", help="root directory for playlists"
     )
     # Create mutually exclusive group for tracks and duration
-    group = parser.add_mutually_exclusive_group()
+    group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
-        "-t",
-        "--tracks",
-        type=int,
-        default=0,
-        help="number of tracks for playlist"
+        "-t", "--tracks", type=int, default=0, help="number of tracks for playlist"
     )
     group.add_argument(
         "-d",
         "--duration",
         type=int,
         default=0,
-        help="total playing time duration (minutes)"
+        help="total playing time duration (minutes)",
     )
 
     parser.add_argument(
@@ -472,7 +523,17 @@ def argparser():
         help="Base64 encode the filename",
     )
 
-    return parser
+    args: argparse.Namespace = parser.parse_args(argv[1:])
+
+    # Convert arguments where appropriate
+    SECONDS_PER_MINUTE: int = 60
+    args.duration = args.duration * SECONDS_PER_MINUTE
+    if args.before is not None:
+        args.before = eyed3.core.Date(args.before)
+    if args.after is not None:
+        args.after = eyed3.core.Date(args.after)
+
+    return args
 
 
 if __name__ == "__main__":
@@ -481,20 +542,7 @@ if __name__ == "__main__":
     log_level = logging.ERROR
 
     # Parse command line arguments.
-    parser = argparser()
-    args = parser.parse_args()
-    if not args.duration and not args.tracks:
-        print("At least one limit must be set")
-        sys.exit(9)
-    # print(args)
-
-    # Convert arguments where appropriate
-    SECONDS_PER_MINUTE = 60
-    args.duration = args.duration * SECONDS_PER_MINUTE
-    if args.before is not None:
-        args.before = eyed3.core.Date(args.before)
-    if args.after is not None:
-        args.after = eyed3.core.Date(args.after)
+    args = parse_args(sys.argv)
 
     # Set log level.
     if args.verbose >= LOG_DEBUG:
@@ -510,7 +558,5 @@ if __name__ == "__main__":
     )
 
     # now actually run the tests.
-    log.info("Entry {")
     main()
-    log.info("Exit {")
     logging.shutdown()
